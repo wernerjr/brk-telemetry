@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
 import { BlurView } from '@react-native-community/blur';
 import LinearGradient from 'react-native-linear-gradient';
 import { useSharedValue, withRepeat, withTiming, Easing } from 'react-native-reanimated';
@@ -12,7 +12,7 @@ const COLORS = {
   white: '#FFFFFF',
 };
 
-const HomeScreen = () => {
+const HomeScreen = ({ navigation }: any) => {
   const rotation = useSharedValue(0);
   const scale = useSharedValue(1);
 
@@ -60,9 +60,9 @@ const HomeScreen = () => {
         <View style={styles.navItem}>
           <Text style={styles.navText}>PAINEL</Text>
         </View>
-        <View style={styles.navItem}>
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Sessions')}>
           <Text style={styles.navText}>SESSÕES</Text>
-        </View>
+        </TouchableOpacity>
         <View style={styles.navItem}>
           <Text style={styles.navText}>CONFIGURAÇÕES</Text>
         </View>
