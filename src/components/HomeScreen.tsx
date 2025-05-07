@@ -53,6 +53,12 @@ const HomeScreen = ({ navigation }: any) => {
         <Text style={styles.subtitle}>TELEMETRIA</Text>
         <View style={styles.divider} />
         <Text style={styles.tagline}>Monitore. Analise. Domine.</Text>
+        <TouchableOpacity 
+          style={styles.startButton}
+          onPress={() => navigation.navigate('SpeedTracking')}
+        >
+          <Text style={styles.startButtonText}>Iniciar Nova Sessão</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Bottom Navigation */}
@@ -136,6 +142,19 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     letterSpacing: 2,
     opacity: 0.8,
+  },
+  startButton: {
+    marginTop: 30,
+    backgroundColor: COLORS.orange,
+    paddingHorizontal: 30,
+    paddingVertical: 15,
+    borderRadius: 25,
+  },
+  startButtonText: {
+    color: COLORS.white,
+    fontSize: 16,
+    fontWeight: '600',
+    letterSpacing: 1,
   },
   navigation: {
     flexDirection: 'row',

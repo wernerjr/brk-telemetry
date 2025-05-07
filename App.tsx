@@ -5,7 +5,9 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import SessionsScreen from './src/components/SessionsScreen';
+import SpeedTrackingScreen from './src/screens/SpeedTrackingScreen';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import SessionDetailScreen from './src/screens/SessionDetailScreen';
 
 const Stack = createStackNavigator();
 
@@ -21,6 +23,8 @@ function App(): React.JSX.Element {
           >
             <Stack.Screen name="Home" component={HomeScreen} />
             <Stack.Screen name="Sessions" component={SessionsScreen} />
+            <Stack.Screen name="SpeedTracking" component={SpeedTrackingScreen} />
+            <Stack.Screen name="SessionDetail" component={SessionDetailScreen} />
           </Stack.Navigator>
         </NavigationContainer>
       </SafeAreaProvider>
