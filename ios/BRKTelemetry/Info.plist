@@ -26,17 +26,16 @@
 	<true/>
 	<key>NSAppTransportSecurity</key>
 	<dict>
-	  <!-- Do not change NSAllowsArbitraryLoads to true, or you will risk app rejection! -->
 		<key>NSAllowsArbitraryLoads</key>
 		<false/>
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Precisamos da sua localização para calcular a velocidade durante a sessão de telemetria</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Precisamos da sua localização para calcular a velocidade durante a sessão de telemetria</string>
 	<key>NSLocationAlwaysUsageDescription</key>
+	<string>Precisamos da sua localização para calcular a velocidade durante a sessão de telemetria</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Precisamos da sua localização para calcular a velocidade durante a sessão de telemetria</string>
 	<key>UIBackgroundModes</key>
 	<array>
@@ -56,5 +55,13 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+	<key>NSDocumentsFolderUsageDescription</key>
+	<string>O aplicativo precisa acessar a pasta de documentos para importar e exportar sessões</string>
+	<key>NSDownloadsFolderUsageDescription</key>
+	<string>O aplicativo precisa acessar a pasta de downloads para salvar sessões exportadas</string>
+	<key>UIFileSharingEnabled</key>
+	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
 </dict>
 </plist>

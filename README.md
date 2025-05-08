@@ -1,3 +1,81 @@
+# BRK Telemetria
+
+BRK Telemetria é um aplicativo móvel desenvolvido em React Native para monitoramento e análise de velocidade e localização em tempo real. O aplicativo oferece uma interface moderna e intuitiva para rastrear sessões de movimento, calcular velocidades e armazenar dados de telemetria.
+
+## Funcionalidades Principais
+
+### 1. Tela Inicial (HomeScreen)
+- Interface moderna com gradiente e efeitos visuais
+- Botão para iniciar nova sessão de rastreamento
+- Navegação para histórico de sessões
+- Design responsivo com animações suaves
+
+### 2. Rastreamento de Velocidade (SpeedTrackingScreen)
+- Monitoramento em tempo real da velocidade atual
+- Cálculo preciso de velocidade usando o algoritmo de Haversine
+- Exibição de coordenadas GPS (latitude, longitude)
+- Informações de altitude e precisão do GPS
+- Botão para finalizar e salvar a sessão
+
+### 3. Histórico de Sessões (SessionsScreen)
+- Lista de todas as sessões salvas
+- Exibição de data/hora e quantidade de pontos de cada sessão
+- Opção para excluir sessões
+- Navegação para detalhes de cada sessão
+- Importação e exportação de sessões em formato JSON
+- Compartilhamento de sessões via arquivo
+
+### 4. Detalhes da Sessão (SessionDetailScreen)
+- Visualização detalhada de uma sessão específica
+- Lista de todos os pontos registrados com:
+  - Coordenadas GPS
+  - Timestamp
+  - Altitude
+  - Precisão do GPS
+- Interface organizada e fácil de navegar
+
+## Tecnologias Utilizadas
+
+- React Native
+- TypeScript
+- @react-native-community/geolocation
+- @react-native-async-storage/async-storage
+- react-native-reanimated
+- react-native-linear-gradient
+- @react-native-community/blur
+- react-native-fs
+- react-native-share
+- react-native-document-picker
+
+## Armazenamento de Dados
+
+O aplicativo utiliza AsyncStorage para persistir os dados localmente no dispositivo. Cada sessão contém:
+- ID único
+- Data/hora de início
+- Array de pontos com:
+  - Latitude
+  - Longitude
+  - Timestamp
+  - Altitude (opcional)
+  - Precisão do GPS (opcional)
+
+## Importação e Exportação
+
+O aplicativo permite:
+- Exportar todas as sessões para um arquivo JSON
+- Importar sessões de um arquivo JSON
+- Compartilhar sessões exportadas
+- Mesclagem automática de sessões importadas com as existentes
+- Prevenção de duplicatas baseada no ID da sessão
+
+## Cálculo de Velocidade
+
+A velocidade é calculada usando o algoritmo de Haversine, que considera:
+- Distância entre pontos consecutivos
+- Diferença de tempo entre as medições
+- Conversão para km/h
+- Filtragem de dados imprecisos
+
 This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
 
 # Getting Started
@@ -66,7 +144,7 @@ This is one way to run your app — you can also build it directly from Android 
 
 Now that you have successfully run the app, let's make changes!
 
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
+Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
 
 When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
 

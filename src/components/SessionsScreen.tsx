@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import SessionManager from './SessionManager';
 
 interface Session {
   id: number;
@@ -11,17 +12,18 @@ interface Session {
 const SessionsScreen = ({ navigation }: any) => {
   const [sessions, setSessions] = useState<Session[]>([]);
 
-  useEffect(() => {
-    const fetchSessions = async () => {
-      try {
-        const data = await AsyncStorage.getItem('sessions');
-        if (data) {
-          setSessions(JSON.parse(data));
-        }
-      } catch (e) {
-        console.log('Erro ao carregar sessões:', e);
+  const fetchSessions = async () => {
+    try {
+      const data = await AsyncStorage.getItem('sessions');
+      if (data) {
+        setSessions(JSON.parse(data));
       }
-    };
+    } catch (e) {
+      console.log('Erro ao carregar sessões:', e);
+    }
+  };
+
+  useEffect(() => {
     const unsubscribe = navigation.addListener('focus', fetchSessions);
     return unsubscribe;
   }, [navigation]);
@@ -56,6 +58,9 @@ const SessionsScreen = ({ navigation }: any) => {
       </TouchableOpacity>
       <Text style={styles.title}>Sessões</Text>
       <Text style={styles.subtitle}>Aqui você verá o histórico e detalhes das suas sessões.</Text>
+      
+      <SessionManager onSessionsUpdated={fetchSessions} />
+      
       <FlatList
         data={sessions}
         keyExtractor={item => item.id.toString()}
