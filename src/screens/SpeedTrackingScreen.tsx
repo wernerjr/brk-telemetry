@@ -54,7 +54,7 @@ const SpeedTrackingScreen = ({ navigation }: any) => {
           altitude: position.coords.altitude ?? undefined,
         };
         const now = newLocation.timestamp;
-        if (!lastSavedTimestamp || now - lastSavedTimestamp >= 1000) {
+        if (!lastSavedTimestamp || now - lastSavedTimestamp >= 100) {
           const round6 = (num: number) => Math.round(num * 1e6) / 1e6;
           setCurrentLocation(newLocation);
           setSession((prev) => {
@@ -88,8 +88,8 @@ const SpeedTrackingScreen = ({ navigation }: any) => {
       {
         enableHighAccuracy: true,
         distanceFilter: 0,
-        interval: 500,
-        fastestInterval: 500,
+        interval: 100,
+        fastestInterval: 100,
       }
     );
     return () => {
