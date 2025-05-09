@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Button, Platform, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import Geolocation from '@react-native-community/geolocation';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -11,14 +11,22 @@ interface Location {
   altitude?: number;
 }
 
-const SpeedTrackingScreen = ({ navigation }: any) => {
+interface FinishLine {
+  latitude: number;
+  longitude: number;
+}
+
+const SpeedTrackingScreen = ({ navigation, route }: any) => {
   const [currentSpeed, setCurrentSpeed] = useState<number>(0);
   const [lastLocation, setLastLocation] = useState<Location | null>(null);
   const [currentLocation, setCurrentLocation] = useState<Location | null>(null);
   const [session, setSession] = useState<Location[]>([]);
   const [lastSavedTimestamp, setLastSavedTimestamp] = useState<number | null>(null);
+  const [finishLine, setFinishLine] = useState<FinishLine | null>(route.params?.finishLine || null);
+  const [distanceToFinish, setDistanceToFinish] = useState<number | null>(null);
+  const [finishReached, setFinishReached] = useState<boolean>(false);
 
-  const calculateHaversineDistance = (loc1: Location, loc2: Location): number => {
+  const calculateHaversineDistance = (loc1: Location | FinishLine, loc2: Location | FinishLine): number => {
     const R = 6371e3; // Earth's radius in meters
     const φ1 = (loc1.latitude * Math.PI) / 180;
     const φ2 = (loc2.latitude * Math.PI) / 180;
@@ -42,6 +50,24 @@ const SpeedTrackingScreen = ({ navigation }: any) => {
     const speedKmh = speedMps * 3.6; // convert to km/h
     return speedKmh;
   };
+
+  useEffect(() => {
+    // Carregar linha de chegada do AsyncStorage se não foi passada por parâmetro
+    const loadFinishLine = async () => {
+      if (!finishLine) {
+        try {
+          const savedFinishLine = await AsyncStorage.getItem('finishLine');
+          if (savedFinishLine) {
+            setFinishLine(JSON.parse(savedFinishLine));
+          }
+        } catch (e) {
+          console.log('Erro ao carregar linha de chegada:', e);
+        }
+      }
+    };
+    
+    loadFinishLine();
+  }, []);
 
   useEffect(() => {
     const watchId = Geolocation.watchPosition(
@@ -81,6 +107,23 @@ const SpeedTrackingScreen = ({ navigation }: any) => {
           } else {
             setLastLocation(newLocation);
           }
+          
+          // Verificar distância até a linha de chegada
+          if (finishLine && currentLocation) {
+            const distance = calculateHaversineDistance(currentLocation, finishLine);
+            setDistanceToFinish(distance);
+            
+            // Verificar se chegou à linha de chegada (dentro de 20 metros)
+            if (distance < 20 && !finishReached) {
+              setFinishReached(true);
+              Alert.alert(
+                "Linha de Chegada!",
+                "Você alcançou a linha de chegada!",
+                [{ text: "OK" }]
+              );
+            }
+          }
+          
           setLastSavedTimestamp(now);
         }
       },
@@ -95,7 +138,7 @@ const SpeedTrackingScreen = ({ navigation }: any) => {
     return () => {
       Geolocation.clearWatch(watchId);
     };
-  }, [lastLocation]);
+  }, [lastLocation, finishLine, currentLocation, finishReached]);
 
   const handleStop = async () => {
     // Salva a sessão localmente
@@ -103,6 +146,8 @@ const SpeedTrackingScreen = ({ navigation }: any) => {
       id: Date.now(),
       date: new Date().toISOString(),
       track: session,
+      finishLine: finishLine,
+      finishReached: finishReached,
     };
     try {
       const prev = await AsyncStorage.getItem('sessions');
@@ -126,6 +171,20 @@ const SpeedTrackingScreen = ({ navigation }: any) => {
           Precisão: {currentLocation.accuracy !== undefined ? currentLocation.accuracy.toFixed(2) + ' m' : 'N/A'}
         </Text>
       )}
+      
+      {finishLine && distanceToFinish !== null && (
+        <View style={styles.finishLineInfo}>
+          <Text style={[
+            styles.distanceText,
+            finishReached ? styles.finishReachedText : {}
+          ]}>
+            {finishReached 
+              ? 'LINHA DE CHEGADA ALCANÇADA!' 
+              : `Distância para chegada: ${distanceToFinish.toFixed(0)} m`}
+          </Text>
+        </View>
+      )}
+      
       <TouchableOpacity style={styles.stopButton} onPress={handleStop}>
         <Text style={styles.stopButtonText}>Parar</Text>
       </TouchableOpacity>
@@ -149,8 +208,25 @@ const styles = StyleSheet.create({
   coordsText: {
     fontSize: 20,
     color: '#fff',
-    marginBottom: 40,
+    marginBottom: 20,
     textAlign: 'center',
+  },
+  finishLineInfo: {
+    backgroundColor: 'rgba(33, 150, 243, 0.2)',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 10,
+    marginBottom: 30,
+    alignItems: 'center',
+  },
+  distanceText: {
+    fontSize: 18,
+    color: '#2196F3',
+    fontWeight: 'bold',
+  },
+  finishReachedText: {
+    color: '#4CAF50',
+    fontSize: 20,
   },
   stopButton: {
     backgroundColor: '#F47820',
