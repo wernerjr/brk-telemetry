@@ -1,11 +1,19 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ScrollView, FlatList } from 'react-native';
 import MapView, { Polyline, Marker } from 'react-native-maps';
 import LinearGradient from 'react-native-linear-gradient';
 
 interface SpeedData {
   speed: number;
   color: string;
+}
+
+interface LapData {
+  lapNumber: number;
+  startTime: number;
+  endTime: number;
+  duration: number;
+  track?: any[];
 }
 
 const SessionDetailScreen = ({ route, navigation }: any) => {
@@ -54,6 +62,15 @@ const SessionDetailScreen = ({ route, navigation }: any) => {
     }
     
     return segments;
+  };
+  
+  // Formatar tempo em minutos:segundos.milissegundos
+  const formatLapTime = (timeMs: number): string => {
+    const minutes = Math.floor(timeMs / 60000);
+    const seconds = Math.floor((timeMs % 60000) / 1000);
+    const milliseconds = Math.floor((timeMs % 1000) / 10); // Centésimos de segundo
+    
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(2, '0')}`;
   };
   
   const calculateSessionStats = () => {
@@ -173,6 +190,22 @@ const SessionDetailScreen = ({ route, navigation }: any) => {
   const trackSegments = useMemo(() => getTrackSegments(), [session]);
   const initialRegion = useMemo(() => getInitialRegion(), [session]);
   
+  // Encontrar a volta mais rápida
+  const getFastestLap = () => {
+    if (!session.laps || session.laps.length === 0) return null;
+    
+    let fastestLap = session.laps[0];
+    for (let i = 1; i < session.laps.length; i++) {
+      if (session.laps[i].duration < fastestLap.duration) {
+        fastestLap = session.laps[i];
+      }
+    }
+    
+    return fastestLap;
+  };
+  
+  const fastestLap = useMemo(() => getFastestLap(), [session]);
+  
   useEffect(() => {
     const stats = calculateSessionStats();
     setSessionStats(stats);
@@ -186,8 +219,26 @@ const SessionDetailScreen = ({ route, navigation }: any) => {
     return `${hrs > 0 ? `${hrs}h ` : ''}${mins}m ${secs}s`;
   };
   
+  const renderLapItem = ({ item, index }: { item: LapData, index: number }) => {
+    const isFastest = fastestLap && item.lapNumber === fastestLap.lapNumber;
+    
+    return (
+      <View style={[styles.lapItem, isFastest && styles.fastestLapItem]}>
+        <View style={styles.lapNumberContainer}>
+          <Text style={styles.lapNumber}>{item.lapNumber}</Text>
+        </View>
+        <View style={styles.lapTimeContainer}>
+          <Text style={[styles.lapTime, isFastest && styles.fastestLapTime]}>
+            {formatLapTime(item.duration)}
+          </Text>
+          {isFastest && <Text style={styles.fastestLabel}>MAIS RÁPIDA</Text>}
+        </View>
+      </View>
+    );
+  };
+  
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
         <Text style={styles.backButtonText}>{'< Voltar'}</Text>
       </TouchableOpacity>
@@ -253,130 +304,196 @@ const SessionDetailScreen = ({ route, navigation }: any) => {
                 pinColor="red"
               />
             )}
+            
+            {/* Finish line marker */}
+            {session.finishLine && (
+              <Marker 
+                coordinate={{
+                  latitude: session.finishLine.latitude,
+                  longitude: session.finishLine.longitude
+                }}
+                title="Linha de Chegada"
+                pinColor="blue"
+              />
+            )}
           </MapView>
         ) : (
-          <View style={styles.emptyMapContainer}>
-            <Text style={styles.emptyText}>Nenhum ponto registrado.</Text>
+          <View style={styles.noDataContainer}>
+            <Text style={styles.noDataText}>Nenhum dado de trajeto disponível</Text>
           </View>
         )}
       </View>
       
-      <View style={styles.legend}>
-        <Text style={styles.legendTitle}>Velocidade</Text>
-        <View style={styles.legendBar}>
-          <Text style={styles.legendText}>Baixa</Text>
-          <LinearGradient 
-            colors={['#00FF00', '#FFFF00', '#FF0000']} 
-            start={{x: 0, y: 0}}
-            end={{x: 1, y: 0}}
-            style={styles.legendGradient} 
+      {/* Laps Section */}
+      {session.laps && session.laps.length > 0 && (
+        <View style={styles.lapsContainer}>
+          <Text style={styles.sectionTitle}>Voltas</Text>
+          <Text style={styles.lapCount}>Total: {session.laps.length} voltas</Text>
+          
+          {fastestLap && (
+            <View style={styles.fastestLapContainer}>
+              <Text style={styles.fastestLapTitle}>Volta mais rápida</Text>
+              <Text style={styles.fastestLapValue}>
+                Volta {fastestLap.lapNumber}: {formatLapTime(fastestLap.duration)}
+              </Text>
+            </View>
+          )}
+          
+          <FlatList
+            data={session.laps}
+            renderItem={renderLapItem}
+            keyExtractor={(item) => `lap-${item.lapNumber}`}
+            scrollEnabled={false}
+            style={styles.lapList}
           />
-          <Text style={styles.legendText}>Alta</Text>
         </View>
-      </View>
-    </View>
+      )}
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#231F20',
-    padding: 24,
+    backgroundColor: '#000',
   },
   backButton: {
-    position: 'absolute',
-    top: 40,
-    left: 10,
-    padding: 10,
-    zIndex: 10,
+    marginTop: 50,
+    marginLeft: 20,
+    marginBottom: 10,
   },
   backButtonText: {
     color: '#F47820',
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '600',
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#F47820',
-    marginBottom: 12,
-    marginTop: 40,
+    color: '#fff',
     textAlign: 'center',
+    marginBottom: 5,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#fff',
-    marginBottom: 16,
+    fontSize: 14,
+    color: '#aaa',
     textAlign: 'center',
+    marginBottom: 20,
   },
   statsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    backgroundColor: '#2a2a2a',
-    borderRadius: 12,
-    padding: 10,
-    marginBottom: 16,
-    flexWrap: 'wrap',
+    justifyContent: 'space-around',
+    marginBottom: 20,
+    paddingHorizontal: 10,
   },
   statItem: {
     alignItems: 'center',
-    width: '50%',
-    padding: 8,
   },
   statValue: {
-    color: '#F47820',
     fontSize: 20,
     fontWeight: 'bold',
+    color: '#F47820',
   },
   statLabel: {
-    color: '#fff',
     fontSize: 12,
-    marginTop: 4,
+    color: '#aaa',
   },
   mapContainer: {
-    flex: 1,
-    borderRadius: 12,
-    overflow: 'hidden',
-    marginBottom: 16,
+    width: '100%',
+    height: 300,
+    marginBottom: 20,
   },
   map: {
-    flex: 1,
+    width: '100%',
+    height: '100%',
   },
-  emptyMapContainer: {
-    flex: 1,
-    backgroundColor: '#2a2a2a',
+  noDataContainer: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#222',
+  },
+  noDataText: {
+    color: '#aaa',
+    fontSize: 16,
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  lapsContainer: {
+    padding: 15,
+    marginBottom: 20,
+  },
+  lapCount: {
+    fontSize: 16,
+    color: '#aaa',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  fastestLapContainer: {
+    backgroundColor: 'rgba(76, 175, 80, 0.2)',
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  fastestLapTitle: {
+    fontSize: 16,
+    color: '#4CAF50',
+    marginBottom: 5,
+  },
+  fastestLapValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  lapList: {
+    width: '100%',
+  },
+  lapItem: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    marginBottom: 10,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  fastestLapItem: {
+    backgroundColor: 'rgba(76, 175, 80, 0.2)',
+  },
+  lapNumberContainer: {
+    width: 50,
+    height: 50,
+    backgroundColor: 'rgba(244, 120, 32, 0.8)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  emptyText: {
+  lapNumber: {
+    fontSize: 18,
+    fontWeight: 'bold',
     color: '#fff',
-    fontSize: 16,
-    opacity: 0.5,
   },
-  legend: {
-    marginBottom: 20,
-  },
-  legendTitle: {
-    color: '#fff',
-    fontSize: 14,
-    marginBottom: 4,
-    textAlign: 'center',
-  },
-  legendBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  legendGradient: {
-    height: 8,
+  lapTimeContainer: {
     flex: 1,
-    marginHorizontal: 8,
-    borderRadius: 4,
+    justifyContent: 'center',
+    paddingLeft: 15,
   },
-  legendText: {
+  lapTime: {
+    fontSize: 18,
     color: '#fff',
+    fontWeight: '600',
+  },
+  fastestLapTime: {
+    color: '#4CAF50',
+  },
+  fastestLabel: {
     fontSize: 12,
+    color: '#4CAF50',
+    marginTop: 2,
   },
 });
 
