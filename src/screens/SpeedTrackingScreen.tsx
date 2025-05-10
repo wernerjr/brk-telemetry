@@ -34,6 +34,7 @@ const SpeedTrackingScreen = ({ navigation, route }: any) => {
   const [session, setSession] = useState<Location[]>([]);
   const [lastSavedTimestamp, setLastSavedTimestamp] = useState<number | null>(null);
   const [finishLine, setFinishLine] = useState<FinishLine | null>(route.params?.finishLine || null);
+  const [sessionName, setSessionName] = useState<string>(route.params?.sessionName || 'Sessão sem nome');
   const [distanceToFinish, setDistanceToFinish] = useState<number | null>(null);
   const [finishReached, setFinishReached] = useState<boolean>(false);
   
@@ -343,6 +344,7 @@ const SpeedTrackingScreen = ({ navigation, route }: any) => {
       
       await AsyncStorage.setItem('currentSession', JSON.stringify({
         ...data,
+        sessionName,
         fastestLap
       }));
     } catch (e) {
@@ -399,6 +401,7 @@ const SpeedTrackingScreen = ({ navigation, route }: any) => {
     const sessionData = {
       id: Date.now(),
       date: new Date().toISOString(),
+      sessionName: sessionName,
       track: session,
       finishLine: finishLine,
       finishReached: finishReached,

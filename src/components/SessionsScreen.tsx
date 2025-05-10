@@ -6,6 +6,7 @@ import SessionManager from './SessionManager';
 interface Session {
   id: number;
   date: string;
+  sessionName?: string;
   track: { latitude: number; longitude: number; timestamp: number }[];
 }
 
@@ -41,7 +42,9 @@ const SessionsScreen = ({ navigation }: any) => {
   const renderItem = ({ item }: { item: Session }) => (
     <TouchableOpacity onPress={() => navigation.navigate('SessionDetail', { session: item })}>
       <View style={styles.sessionItem}>
-        <Text style={styles.sessionTitle}>Sessão #{item.id}</Text>
+        <Text style={styles.sessionTitle}>
+          {item.sessionName || `Sessão #${item.id}`}
+        </Text>
         <Text style={styles.sessionDate}>{new Date(item.date).toLocaleString()}</Text>
         <Text style={styles.sessionPoints}>Pontos: {item.track.length}</Text>
         <TouchableOpacity style={styles.deleteButton} onPress={() => deleteSession(item.id)}>

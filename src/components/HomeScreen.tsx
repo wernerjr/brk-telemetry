@@ -55,7 +55,7 @@ const HomeScreen = ({ navigation }: any) => {
         <Text style={styles.tagline}>Monitore. Analise. Domine.</Text>
         <TouchableOpacity 
           style={styles.startButton}
-          onPress={() => navigation.navigate('AccuracyWait')}
+          onPress={() => navigation.navigate('SessionSetup')}
         >
           <Text style={styles.startButtonText}>Iniciar Nova Sessão</Text>
         </TouchableOpacity>

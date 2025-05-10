@@ -293,7 +293,7 @@ const SessionDetailScreen = ({ route, navigation }: any) => {
         <Text style={styles.backButtonText}>{'< Voltar'}</Text>
       </TouchableOpacity>
       
-      <Text style={styles.title}>Sessão #{session.id}</Text>
+      <Text style={styles.title}>{session.sessionName || `Sessão #${session.id}`}</Text>
       <Text style={styles.subtitle}>Data: {new Date(session.date).toLocaleString()}</Text>
       
       <View style={styles.statsContainer}>

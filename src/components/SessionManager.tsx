@@ -9,6 +9,36 @@ interface SessionManagerProps {
   onSessionsUpdated: () => void;
 }
 
+interface Location {
+  latitude: number;
+  longitude: number;
+  timestamp?: number;
+  accuracy?: number;
+  altitude?: number;
+}
+
+interface LapData {
+  lapNumber: number;
+  startTime: number;
+  endTime: number;
+  duration: number;
+  track: Location[];
+  isDecelerationLap?: boolean;
+}
+
+interface SessionData {
+  id: number;
+  date: string;
+  sessionName?: string;
+  finishLine?: {
+    latitude: number;
+    longitude: number;
+  };
+  laps?: LapData[];
+  fastestLap?: LapData | null;
+  track?: Location[];
+}
+
 const SessionManager: React.FC<SessionManagerProps> = ({ onSessionsUpdated }) => {
   const requestStoragePermission = async () => {
     if (Platform.OS === 'android') {
@@ -108,19 +138,75 @@ Name: ${error.name || 'Sem nome de erro'}
       console.log('Arquivo selecionado:', result[0]);
 
       const fileContent = await RNFS.readFile(result[0].uri, 'utf8');
-      const importedSessions = JSON.parse(fileContent);
+      const importedSessions = JSON.parse(fileContent) as SessionData[];
 
       // Validar o formato dos dados importados
       if (!Array.isArray(importedSessions)) {
         throw new Error('Formato de arquivo inválido');
       }
 
+      // Validar a estrutura dos dados de cada sessão
+      importedSessions.forEach((session, index) => {
+        if (!session.id) {
+          throw new Error(`Sessão ${index + 1} inválida: ID ausente`);
+        }
+        if (!session.date) {
+          throw new Error(`Sessão ${index + 1} inválida: Data ausente`);
+        }
+        
+        // Verificar a presença da linha de chegada
+        if (!session.finishLine || typeof session.finishLine.latitude !== 'number' || typeof session.finishLine.longitude !== 'number') {
+          console.warn(`Sessão ${index + 1} (${session.id}): Linha de chegada inválida ou ausente`);
+          // Definir uma linha de chegada padrão se não existir
+          session.finishLine = session.finishLine || { latitude: 0, longitude: 0 };
+        }
+        
+        // Verificar nome da sessão
+        if (!session.sessionName) {
+          console.warn(`Sessão ${index + 1} (${session.id}): Nome da sessão ausente`);
+          // Adicionar um nome padrão baseado na data
+          const sessionDate = new Date(session.date);
+          session.sessionName = `Sessão ${sessionDate.toLocaleDateString()} ${sessionDate.toLocaleTimeString()}`;
+        }
+        
+        // Validar estrutura de voltas
+        if (Array.isArray(session.laps)) {
+          session.laps.forEach((lap: LapData, lapIndex: number) => {
+            // Garantir que o número da volta seja sequencial
+            lap.lapNumber = lapIndex + 1;
+            
+            // Garantir que a propriedade isDecelerationLap exista
+            if (lap.isDecelerationLap === undefined) {
+              lap.isDecelerationLap = false;
+            }
+            
+            // Verificar dados de trajeto das voltas
+            if (!Array.isArray(lap.track)) {
+              lap.track = [];
+            }
+          });
+        } else {
+          session.laps = [];
+        }
+        
+        // Garantir que a volta mais rápida está corretamente calculada
+        if (session.laps && session.laps.length > 0) {
+          session.fastestLap = session.laps
+            .filter((lap: LapData) => !lap.isDecelerationLap)
+            .reduce((fastest: LapData | null, lap: LapData) => 
+              fastest === null || lap.duration < fastest.duration ? lap : fastest, 
+              null);
+        } else {
+          session.fastestLap = null;
+        }
+      });
+
       // Mesclar com sessões existentes
       const existingSessions = await AsyncStorage.getItem('sessions');
-      const currentSessions = existingSessions ? JSON.parse(existingSessions) : [];
+      const currentSessions = existingSessions ? JSON.parse(existingSessions) as SessionData[] : [];
       
       // Criar um mapa de IDs para evitar duplicatas
-      const sessionMap = new Map();
+      const sessionMap = new Map<number, SessionData>();
       [...currentSessions, ...importedSessions].forEach(session => {
         sessionMap.set(session.id, session);
       });

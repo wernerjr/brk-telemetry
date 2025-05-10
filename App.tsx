@@ -8,7 +8,7 @@ import SessionsScreen from './src/components/SessionsScreen';
 import SpeedTrackingScreen from './src/screens/SpeedTrackingScreen';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import SessionDetailScreen from './src/screens/SessionDetailScreen';
-import AccuracyWaitScreen from './src/screens/AccuracyWaitScreen';
+import SessionSetupScreen from './src/screens/SessionSetupScreen';
 
 const Stack = createStackNavigator();
 
@@ -24,7 +24,7 @@ function App(): React.JSX.Element {
           >
             <Stack.Screen name="Home" component={HomeScreen} />
             <Stack.Screen name="Sessions" component={SessionsScreen} />
-            <Stack.Screen name="AccuracyWait" component={AccuracyWaitScreen} />
+            <Stack.Screen name="SessionSetup" component={SessionSetupScreen} />
             <Stack.Screen name="SpeedTracking" component={SpeedTrackingScreen} />
             <Stack.Screen name="SessionDetail" component={SessionDetailScreen} />
           </Stack.Navigator>
