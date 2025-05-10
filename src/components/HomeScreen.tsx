@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from 'react-nati
 import { BlurView } from '@react-native-community/blur';
 import LinearGradient from 'react-native-linear-gradient';
 import { useSharedValue, withRepeat, withTiming, Easing } from 'react-native-reanimated';
+import BRKLogo from './BRKLogo';
 
 const { width, height } = Dimensions.get('window');
 
@@ -13,15 +14,9 @@ const COLORS = {
 };
 
 const HomeScreen = ({ navigation }: any) => {
-  const rotation = useSharedValue(0);
   const scale = useSharedValue(1);
 
   useEffect(() => {
-    rotation.value = withRepeat(
-      withTiming(360, { duration: 20000, easing: Easing.linear }),
-      -1,
-      false
-    );
     scale.value = withRepeat(
       withTiming(1.1, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
       -1,
@@ -37,19 +32,9 @@ const HomeScreen = ({ navigation }: any) => {
         style={styles.background}
       />
 
-      {/* Speed Circle */}
-      <View style={styles.speedCircleContainer}>
-        <BlurView
-          style={styles.speedCircle}
-          blurType="dark"
-          blurAmount={20}
-        />
-        <View style={styles.speedCircleInner} />
-      </View>
-
       {/* Content */}
       <View style={styles.content}>
-        <Text style={styles.title}>BRK</Text>
+        <BRKLogo width={180} height={60} color={COLORS.white} style={styles.logo} />
         <Text style={styles.subtitle}>TELEMETRIA</Text>
         <View style={styles.divider} />
         <Text style={styles.tagline}>Monitore. Analise. Domine.</Text>
@@ -87,49 +72,20 @@ const styles = StyleSheet.create({
     width: width,
     height: height,
   },
-  speedCircleContainer: {
-    position: 'absolute',
-    top: height * 0.2,
-    left: width * 0.5 - 150,
-    width: 300,
-    height: 300,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  speedCircle: {
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  speedCircleInner: {
-    position: 'absolute',
-    width: 250,
-    height: 250,
-    borderRadius: 125,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-  },
   content: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 100,
   },
-  title: {
-    fontSize: 72,
-    fontWeight: '900',
-    color: COLORS.white,
-    letterSpacing: 5,
-    textShadowColor: 'rgba(255, 255, 255, 0.3)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 10,
+  logo: {
+    marginBottom: 10,
   },
   subtitle: {
     fontSize: 24,
     fontWeight: '700',
     color: COLORS.white,
     letterSpacing: 8,
-    marginTop: -10,
+    marginTop: -5,
   },
   divider: {
     width: 100,
