@@ -55,6 +55,9 @@ const SpeedTrackingScreen = ({ navigation, route }: any) => {
   const [screenDimensions, setScreenDimensions] = useState(Dimensions.get('window'));
   const isLandscape = screenDimensions.width > screenDimensions.height;
   
+  // Adicionar state para armazenar a melhor volta da sessão
+  const [bestLapTime, setBestLapTime] = useState<number | null>(null);
+  
   // Efeito para monitorar mudanças na orientação da tela
   useEffect(() => {
     const updateDimensions = () => {
@@ -287,6 +290,11 @@ const SpeedTrackingScreen = ({ navigation, route }: any) => {
                     lapCount: lapCount + 1,
                     track: session
                   });
+                  
+                  // Adicione a verificação de melhor volta
+                  if (bestLapTime === null || lapDuration < bestLapTime) {
+                    setBestLapTime(lapDuration);
+                  }
                 }
                 
                 // Evitar múltiplas detecções da linha de chegada
@@ -421,133 +429,148 @@ const SpeedTrackingScreen = ({ navigation, route }: any) => {
     navigation.navigate('Sessions');
   };
 
+  // Atualizar a lógica para guardar a melhor volta quando uma volta é completada
+  useEffect(() => {
+    // Quando lastLapTime for atualizado, verificar se é a melhor volta
+    if (lastLapTime === null) return;
+    
+    if (bestLapTime === null || lastLapTime < bestLapTime) {
+      setBestLapTime(lastLapTime);
+    }
+  }, [lastLapTime]);
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        {/* Topo da tela - Informações GPS */}
-        <View style={styles.topBar}>
-          <View style={styles.gpsInfoItemLocation}>
-            <Text style={styles.iconText}>●</Text>
-            <View>
-              <Text style={styles.gpsInfoLabel}>COORDENADAS</Text>
-              <Text style={styles.gpsInfoText} numberOfLines={1} ellipsizeMode="tail">
-                {currentLocation ? `${currentLocation.latitude.toFixed(6)}, ${currentLocation.longitude.toFixed(6)}` : 'N/A'}
-              </Text>
-            </View>
-          </View>
-          
-          <View style={styles.gpsInfoSeparator} />
-          
-          <View style={styles.gpsInfoItem}>
-            <Text style={styles.iconText}>↑</Text>
-            <View>
-              <Text style={styles.gpsInfoLabel}>ALTITUDE</Text>
-              <Text style={styles.gpsInfoText}>
-                {currentLocation && currentLocation.altitude !== undefined 
-                  ? `${currentLocation.altitude.toFixed(1)} m` 
-                  : 'N/A'}
-              </Text>
-            </View>
-          </View>
-          
-          <View style={styles.gpsInfoSeparator} />
-          
-          <View style={styles.gpsInfoItem}>
-            <Text style={styles.iconText}>◎</Text>
-            <View>
-              <Text style={styles.gpsInfoLabel}>PRECISÃO</Text>
-              <Text style={styles.gpsInfoText}>
-                {currentLocation && currentLocation.accuracy !== undefined 
-                  ? `${currentLocation.accuracy.toFixed(1)} m` 
-                  : 'N/A'}
-              </Text>
-            </View>
+        {/* Informações GPS compactas no topo */}
+        <View style={styles.miniTopBar}>
+          <View style={styles.gpsInfoRow}>
+            <Text style={styles.miniIconText}>●</Text>
+            <Text style={styles.miniInfoText} numberOfLines={1} ellipsizeMode="tail">
+              {currentLocation ? `${currentLocation.latitude.toFixed(5)}, ${currentLocation.longitude.toFixed(5)}` : 'N/A'}
+            </Text>
+            
+            <Text style={styles.miniIconText}>↑</Text>
+            <Text style={styles.miniInfoText}>
+              {currentLocation?.altitude !== undefined ? `${currentLocation.altitude.toFixed(0)}m` : 'N/A'}
+            </Text>
+            
+            <Text style={styles.miniIconText}>◎</Text>
+            <Text style={styles.miniInfoText}>
+              {currentLocation?.accuracy !== undefined ? `${currentLocation.accuracy.toFixed(0)}m` : 'N/A'}
+            </Text>
           </View>
         </View>
         
-        {/* Conteúdo principal - Layout adaptativo para orientação */}
+        {/* Conteúdo principal adaptativo (landscape/portrait) */}
         <View style={[
           styles.mainContent,
-          // Aplicar layout horizontal apenas em landscape
           isLandscape ? styles.mainContentLandscape : styles.mainContentPortrait
         ]}>
-          {/* Seção de velocidade */}
-          <View style={[
-            styles.speedSection,
-            isLandscape ? styles.leftSection : styles.topSection
-          ]}>
-            <View style={styles.speedContainer}>
-              <Text style={styles.speedLabel}>VELOCIDADE</Text>
-              <Text style={styles.speedText}>
-                {Number.isFinite(currentSpeed) ? currentSpeed.toFixed(1) : '0.0'}
-              </Text>
-              <Text style={styles.speedUnit}>km/h</Text>
-            </View>
-            
-            {finishLine && distanceToFinish !== null && (
-              <View style={styles.finishLineInfo}>
-                <Text style={[
-                  styles.distanceText,
-                  finishReached ? styles.finishReachedText : {}
-                ]}>
-                  {!firstCrossing 
-                    ? `${distanceToFinish.toFixed(0)} m até a linha` 
-                    : `${distanceToFinish.toFixed(0)} m até completar`}
-                </Text>
-                {!firstCrossing && (
-                  <Text style={styles.instructionText}>
-                    Cruze a linha para iniciar
+          {firstCrossing ? (
+            /* Quando a sessão está ativa com voltas */
+            <>
+              {/* Área da velocidade (esquerda/topo dependendo da orientação) */}
+              <View style={[
+                styles.speedSection,
+                isLandscape ? styles.speedSectionLandscape : styles.speedSectionPortrait
+              ]}>
+                <View style={styles.speedContainer}>
+                  <Text style={styles.speedLabel}>VELOCIDADE</Text>
+                  <Text style={styles.speedValue}>
+                    {Number.isFinite(currentSpeed) ? currentSpeed.toFixed(1) : '0.0'}
                   </Text>
-                )}
-              </View>
-            )}
-          </View>
-          
-          {/* Seção de informações de voltas */}
-          <View style={[
-            styles.lapSection,
-            isLandscape ? styles.rightSection : styles.bottomSection
-          ]}>
-            {firstCrossing ? (
-              <View style={styles.lapsContainer}>
-                <View style={styles.lapHeader}>
-                  <Text style={styles.lapCountText}>VOLTA {lapCount}</Text>
-                  <TouchableOpacity style={styles.stopButton} onPress={handleStop}>
-                    <Text style={styles.stopButtonText}>PARAR</Text>
-                  </TouchableOpacity>
+                  <Text style={styles.speedUnit}>km/h</Text>
                 </View>
                 
-                <View style={styles.lapTimesContainer}>
-                  {/* Tempo da volta atual - maior e mais destaque */}
-                  <View style={styles.currentLapTimeContainer}>
-                    <Text style={styles.currentLapTimeLabel}>TEMPO ATUAL</Text>
-                    <Text style={styles.currentLapTimeValue}>
-                      {formatLapTime(currentLapTime)}
+                {/* Informação da distância */}
+                {finishLine && distanceToFinish !== null && (
+                  <View style={styles.distanceIndicator}>
+                    <Text style={[
+                      styles.distanceText,
+                      distanceToFinish < 50 ? styles.distanceCloseText : {}
+                    ]}>
+                      {`${distanceToFinish.toFixed(0)}m`}
                     </Text>
+                    <Text style={styles.distanceLabel}>ATÉ LINHA</Text>
                   </View>
-                  
-                  {/* Última volta - menor */}
+                )}
+                
+                {/* Botão de parar */}
+                <TouchableOpacity style={styles.stopButton} onPress={handleStop}>
+                  <Text style={styles.stopButtonText}>PARAR</Text>
+                </TouchableOpacity>
+              </View>
+              
+              {/* Área de tempos de voltas (centro/principal) */}
+              <View style={[
+                styles.lapTimesSection,
+                isLandscape ? styles.lapTimesSectionLandscape : styles.lapTimesSectionPortrait
+              ]}>
+                {/* Tempo da volta atual (mais importante, maior destaque) */}
+                <View style={styles.currentLapContainer}>
+                  <View style={styles.lapHeaderRow}>
+                    <Text style={styles.lapCountText}>VOLTA {lapCount}</Text>
+                    <Text style={styles.lapTypeLabel}>ATUAL</Text>
+                  </View>
+                  <Text style={styles.currentLapTimeValue}>
+                    {formatLapTime(currentLapTime)}
+                  </Text>
+                </View>
+                
+                {/* Painel de voltas anteriores/melhores */}
+                <View style={styles.lapHistoryContainer}>
+                  {/* Última volta completada */}
                   {lastLapTime !== null && (
-                    <View style={styles.lastLapTimeContainer}>
-                      <Text style={styles.lastLapTimeLabel}>ÚLTIMA VOLTA</Text>
-                      <Text style={styles.lastLapTimeValue}>
+                    <View style={styles.lapHistoryItem}>
+                      <Text style={styles.lapHistoryLabel}>ÚLTIMA VOLTA</Text>
+                      <Text style={[
+                        styles.lapHistoryValue,
+                        bestLapTime === lastLapTime ? styles.bestLapValue : {}
+                      ]}>
                         {formatLapTime(lastLapTime)}
+                      </Text>
+                    </View>
+                  )}
+                  
+                  {/* Melhor volta da sessão */}
+                  {bestLapTime !== null && (
+                    <View style={styles.lapHistoryItem}>
+                      <Text style={styles.lapHistoryLabel}>MELHOR VOLTA</Text>
+                      <Text style={[styles.lapHistoryValue, styles.bestLapValue]}>
+                        {formatLapTime(bestLapTime)}
                       </Text>
                     </View>
                   )}
                 </View>
               </View>
-            ) : (
-              <View style={styles.notStartedContainer}>
-                <Text style={styles.notStartedText}>
-                  Aguardando passagem pela linha de chegada para iniciar
+            </>
+          ) : (
+            /* Quando ainda não foi iniciada a primeira volta */
+            <View style={styles.notStartedContainer}>
+              <View style={styles.speedContainerCenter}>
+                <Text style={styles.speedValue}>
+                  {Number.isFinite(currentSpeed) ? currentSpeed.toFixed(1) : '0.0'}
                 </Text>
-                <TouchableOpacity style={styles.stopButton} onPress={handleStop}>
-                  <Text style={styles.stopButtonText}>CANCELAR</Text>
-                </TouchableOpacity>
+                <Text style={styles.speedUnit}>km/h</Text>
               </View>
-            )}
-          </View>
+              
+              {finishLine && distanceToFinish !== null && (
+                <View style={styles.waitingPrompt}>
+                  <Text style={styles.waitingDistance}>
+                    {`${distanceToFinish.toFixed(0)}m ATÉ A LINHA`}
+                  </Text>
+                  <Text style={styles.waitingInstructions}>
+                    Cruze a linha de chegada para iniciar a sessão
+                  </Text>
+                </View>
+              )}
+              
+              <TouchableOpacity style={styles.stopButtonLarge} onPress={handleStop}>
+                <Text style={styles.stopButtonText}>CANCELAR</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       </View>
     </SafeAreaView>
@@ -562,53 +585,32 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000',
-    padding: 10,
-    paddingTop: 10, // Reduzido já que agora estamos usando SafeAreaView
+    padding: 8,
   },
-  topBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    paddingHorizontal: 15,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    borderRadius: 8,
-    marginBottom: 10,
-    zIndex: 10,
+  miniTopBar: {
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    marginBottom: 8,
   },
-  gpsInfoItem: {
+  gpsInfoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
   },
-  gpsInfoItemLocation: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 2,
-  },
-  gpsInfoSeparator: {
-    width: 1,
-    height: '100%',
-    backgroundColor: '#333',
+  miniIconText: {
+    fontSize: 12,
+    color: '#F47820',
     marginHorizontal: 4,
   },
-  iconText: {
-    fontSize: 18,
-    marginRight: 6,
-    color: '#F47820',
-    fontWeight: 'bold',
-  },
-  gpsInfoLabel: {
-    color: '#aaa',
+  miniInfoText: {
+    color: '#ccc',
     fontSize: 10,
-    fontWeight: 'bold',
-    letterSpacing: 0.5,
-  },
-  gpsInfoText: {
-    color: '#fff',
-    fontSize: 12,
     fontFamily: 'monospace',
-    fontWeight: '500',
+    marginRight: 8,
   },
+  
+  // Layout principal
   mainContent: {
     flex: 1,
   },
@@ -618,143 +620,188 @@ const styles = StyleSheet.create({
   mainContentPortrait: {
     flexDirection: 'column',
   },
+  
+  // Seção de velocidade
   speedSection: {
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    borderRadius: 10,
+    padding: 10,
   },
-  leftSection: {
-    width: '35%',
-    paddingRight: 10,
-    borderRightWidth: 1,
-    borderRightColor: '#333',
+  speedSectionLandscape: {
+    width: '25%',
+    height: '100%',
+    marginRight: 10,
   },
-  topSection: {
-    height: '35%',
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#333',
-  },
-  lapSection: {
-    justifyContent: 'center',
-  },
-  rightSection: {
-    width: '65%',
-    paddingLeft: 10,
-  },
-  bottomSection: {
-    height: '65%',
-    paddingTop: 10,
+  speedSectionPortrait: {
+    width: '100%',
+    height: '25%',
+    marginBottom: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
   speedContainer: {
     alignItems: 'center',
   },
+  speedContainerCenter: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
   speedLabel: {
     color: '#aaa',
-    fontSize: 14,
+    fontSize: 12,
     letterSpacing: 1,
   },
-  speedText: {
-    fontSize: 60,
+  speedValue: {
+    fontSize: 40,
     color: '#fff',
     fontWeight: 'bold',
+    fontFamily: 'monospace',
   },
   speedUnit: {
     color: '#aaa',
-    fontSize: 16,
-    marginTop: -5,
+    fontSize: 14,
+    fontFamily: 'monospace',
   },
-  finishLineInfo: {
-    backgroundColor: 'rgba(33, 150, 243, 0.2)',
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 8,
-    marginTop: 20,
+  distanceIndicator: {
     alignItems: 'center',
-    width: '90%',
+    marginVertical: 10,
   },
   distanceText: {
-    fontSize: 16,
+    fontSize: 22,
     color: '#2196F3',
     fontWeight: 'bold',
+    fontFamily: 'monospace',
   },
-  finishReachedText: {
+  distanceCloseText: {
     color: '#4CAF50',
   },
-  instructionText: {
+  distanceLabel: {
+    color: '#ccc',
     fontSize: 12,
-    color: '#fff',
-    marginTop: 5,
-    fontStyle: 'italic',
+    letterSpacing: 1,
   },
-  lapsContainer: {
-    width: '100%',
+  
+  // Seção de tempos de voltas (centro/principal)
+  lapTimesSection: {
+    flex: 1,
+    backgroundColor: 'rgba(20, 20, 20, 0.7)',
+    borderRadius: 10,
     padding: 15,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    borderRadius: 12,
-  },
-  lapHeader: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
+  },
+  lapTimesSectionLandscape: {
+    height: '100%',
+  },
+  lapTimesSectionPortrait: {
+    flex: 1,
+  },
+  
+  // Volta atual
+  currentLapContainer: {
     alignItems: 'center',
     marginBottom: 15,
+    padding: 15,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    borderRadius: 10,
+  },
+  lapHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 10,
   },
   lapCountText: {
-    fontSize: 24,
+    fontSize: 20,
     color: '#F47820',
     fontWeight: 'bold',
   },
-  lapTimesContainer: {
-    width: '100%',
-  },
-  currentLapTimeContainer: {
-    alignItems: 'center',
-    marginBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#333',
-    paddingBottom: 15,
-  },
-  currentLapTimeLabel: {
-    fontSize: 16,
+  lapTypeLabel: {
+    fontSize: 14,
     color: '#aaa',
-    marginBottom: 8,
+    fontWeight: 'bold',
     letterSpacing: 1,
   },
   currentLapTimeValue: {
-    fontSize: 50,
+    fontSize: 60,
     color: '#fff',
     fontWeight: 'bold',
     fontFamily: 'monospace',
   },
-  lastLapTimeContainer: {
-    alignItems: 'center',
+  
+  // Histórico de voltas
+  lapHistoryContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    padding: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    borderRadius: 10,
   },
-  lastLapTimeLabel: {
-    fontSize: 14,
+  lapHistoryItem: {
+    alignItems: 'center',
+    padding: 10,
+    flex: 1,
+  },
+  lapHistoryLabel: {
+    fontSize: 12,
     color: '#aaa',
     marginBottom: 5,
+    letterSpacing: 0.5,
   },
-  lastLapTimeValue: {
-    fontSize: 28,
-    color: '#F47820',
+  lapHistoryValue: {
+    fontSize: 26,
+    color: '#fff',
     fontWeight: 'bold',
     fontFamily: 'monospace',
   },
-  notStartedContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: '100%',
+  bestLapValue: {
+    color: '#4CAF50',
   },
-  notStartedText: {
-    color: '#aaa',
+  
+  // Tela antes de iniciar a primeira volta
+  notStartedContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  waitingPrompt: {
+    alignItems: 'center',
+    marginBottom: 30,
+    padding: 15,
+    backgroundColor: 'rgba(33, 150, 243, 0.15)',
+    borderRadius: 10,
+    width: '100%',
+  },
+  waitingDistance: {
+    fontSize: 24,
+    color: '#2196F3',
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  waitingInstructions: {
+    color: '#ccc',
     fontSize: 16,
     textAlign: 'center',
-    marginBottom: 20,
   },
+  
+  // Botões
   stopButton: {
     backgroundColor: '#F47820',
-    paddingHorizontal: 25,
-    paddingVertical: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginTop: 8,
+  },
+  stopButtonLarge: {
+    backgroundColor: '#F47820',
+    paddingHorizontal: 30,
+    paddingVertical: 15,
     borderRadius: 25,
+    marginTop: 20,
   },
   stopButtonText: {
     color: '#fff',
