@@ -10,11 +10,13 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  ScrollView
+  SafeAreaView,
+  StatusBar
 } from 'react-native';
 import Geolocation from '@react-native-community/geolocation';
 import MapView, { Marker } from 'react-native-maps';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import LinearGradient from 'react-native-linear-gradient';
 
 const { width, height } = Dimensions.get('window');
 
@@ -22,6 +24,17 @@ interface Location {
   latitude: number;
   longitude: number;
 }
+
+const COLORS = {
+  orange: '#F47820',
+  black: '#231F20',
+  white: '#FFFFFF',
+  lightGray: '#aaaaaa',
+  green: '#4CAF50',
+  blue: '#2196F3',
+  darkBlue: 'rgba(33, 150, 243, 0.15)',
+  red: '#F44336',
+};
 
 const SessionSetupScreen = ({ navigation }: any) => {
   const [currentAccuracy, setCurrentAccuracy] = useState<number | null>(null);
@@ -105,265 +118,374 @@ const SessionSetupScreen = ({ navigation }: any) => {
   };
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={{ flex: 1 }}
-    >
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-        <View style={styles.container}>
-          {mapVisible && currentLocation ? (
-            <View style={styles.mapContainer}>
-              <MapView
-                style={styles.map}
-                initialRegion={{
-                  latitude: currentLocation.latitude,
-                  longitude: currentLocation.longitude,
-                  latitudeDelta: 0.005,
-                  longitudeDelta: 0.005,
-                }}
-                onPress={handleMapPress}
-                mapType="satellite"
-                showsCompass={true}
-                showsUserLocation={true}
-                zoomControlEnabled={true}
-              >
-                {currentLocation && (
-                  <Marker
-                    coordinate={currentLocation}
-                    title="Sua posição atual"
-                    description="Posição atual com base no GPS"
-                    pinColor="blue"
-                  />
-                )}
-                {finishLine && (
-                  <Marker
-                    coordinate={finishLine}
-                    title="Linha de chegada/chegada"
-                    description="Ponto para contar voltas"
-                    pinColor="red"
-                  />
-                )}
-              </MapView>
-              <Text style={styles.mapInstructions}>
-                Toque no mapa para definir a linha de chegada/chegada (ponto vermelho)
-              </Text>
-              <TouchableOpacity 
-                style={styles.closeMapButton} 
-                onPress={toggleMap}
-              >
-                <Text style={styles.closeMapButtonText}>Confirmar Linha</Text>
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.black} />
+      
+      <LinearGradient
+        colors={[COLORS.black, '#2a2a2a', COLORS.black]}
+        style={styles.background}
+      />
+      
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.container}
+      >
+        {mapVisible && currentLocation ? (
+          <View style={styles.mapContainer}>
+            <MapView
+              style={styles.map}
+              initialRegion={{
+                latitude: currentLocation.latitude,
+                longitude: currentLocation.longitude,
+                latitudeDelta: 0.005,
+                longitudeDelta: 0.005,
+              }}
+              onPress={handleMapPress}
+              mapType="satellite"
+              showsCompass={true}
+              showsUserLocation={true}
+              zoomControlEnabled={true}
+            >
+              {currentLocation && (
+                <Marker
+                  coordinate={currentLocation}
+                  title="Sua posição atual"
+                  description="Posição atual com base no GPS"
+                  pinColor="blue"
+                />
+              )}
+              {finishLine && (
+                <Marker
+                  coordinate={finishLine}
+                  title="Linha de chegada/chegada"
+                  description="Ponto para contar voltas"
+                  pinColor="red"
+                />
+              )}
+            </MapView>
+            <Text style={styles.mapInstructions}>
+              Toque no mapa para definir a linha de chegada
+            </Text>
+            <TouchableOpacity 
+              style={styles.closeMapButton} 
+              onPress={toggleMap}
+            >
+              <Text style={styles.closeMapButtonText}>Confirmar</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.contentContainer}>
+            <View style={styles.headerRow}>
+              <TouchableOpacity style={styles.backButton} onPress={handleCancel}>
+                <Text style={styles.backButtonText}>←</Text>
               </TouchableOpacity>
-            </View>
-          ) : (
-            <>
               <Text style={styles.title}>Configurar Sessão</Text>
-              
-              {/* Campo de nome da sessão */}
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Nome da Sessão:</Text>
+            </View>
+            
+            <View style={styles.compactRow}>
+              <View style={[styles.sectionCard, styles.nameInputContainer]}>
+                <Text style={styles.sectionTitle}>Nome</Text>
                 <TextInput
                   style={styles.textInput}
                   value={sessionName}
                   onChangeText={setSessionName}
-                  placeholder="Ex: Treino Interlagos 12/07"
-                  placeholderTextColor="#777"
+                  placeholder="Nome da sessão"
+                  placeholderTextColor="rgba(255, 255, 255, 0.4)"
                   autoCapitalize="words"
                 />
               </View>
               
-              <View style={styles.accuracyContainer}>
-                <Text style={styles.accuracyLabel}>Precisão do GPS:</Text>
-                <Text style={styles.accuracyValue}>
-                  {currentAccuracy ? `${currentAccuracy.toFixed(1)} m` : 'Calculando...'}
-                </Text>
-                
-                <View style={styles.indicatorContainer}>
-                  <ActivityIndicator 
-                    size="large" 
-                    color={isReadyToStart ? '#4CAF50' : '#F47820'} 
-                  />
-                  <Text style={[
-                    styles.statusText, 
-                    { color: isReadyToStart ? '#4CAF50' : '#F47820' }
-                  ]}>
-                    {isReadyToStart 
-                      ? 'Precisão adequada! ✓' 
-                      : 'Aguardando precisão (< 10m)...'}
+              <View style={[styles.sectionCard, styles.gpsContainer]}>
+                <Text style={styles.sectionTitle}>GPS</Text>
+                <View style={styles.gpsContent}>
+                  <Text style={styles.valueText}>
+                    {currentAccuracy ? `${currentAccuracy.toFixed(1)}m` : '...'}
                   </Text>
+                  <View style={styles.statusRow}>
+                    <ActivityIndicator 
+                      size="small" 
+                      color={isReadyToStart ? COLORS.green : COLORS.orange} 
+                    />
+                    <Text style={[
+                      styles.statusText, 
+                      { color: isReadyToStart ? COLORS.green : COLORS.orange }
+                    ]}>
+                      {isReadyToStart ? 'OK' : 'Aguardando...'}
+                    </Text>
+                  </View>
                 </View>
               </View>
+            </View>
 
-              <View style={styles.finishLineContainer}>
-                <Text style={styles.finishLineTitle}>Linha de Chegada:</Text>
+            <View style={styles.sectionCard}>
+              <View style={styles.finishLineHeader}>
+                <Text style={styles.sectionTitle}>Linha de Chegada</Text>
                 <Text style={[
-                  styles.finishLineText,
-                  {color: finishLine ? '#4CAF50' : '#F47820'}
+                  styles.finishLineStatus,
+                  {color: finishLine ? COLORS.green : COLORS.orange}
                 ]}>
-                  {finishLine 
-                    ? '✓ Linha de chegada definida!' 
-                    : '⚠️ Definição obrigatória'}
+                  {finishLine ? '✓ Definida' : '⚠️ Obrigatória'}
                 </Text>
-                <TouchableOpacity 
-                  style={styles.mapButton} 
-                  onPress={toggleMap}
-                  disabled={!currentLocation}
-                >
-                  <Text style={styles.mapButtonText}>
-                    {finishLine ? 'Alterar Linha de Chegada' : 'Definir Linha de Chegada'}
-                  </Text>
-                </TouchableOpacity>
               </View>
+              <TouchableOpacity 
+                style={styles.mapButton} 
+                onPress={toggleMap}
+                disabled={!currentLocation}
+              >
+                <Text style={styles.mapButtonText}>
+                  {finishLine ? 'Alterar Linha' : 'Definir Linha'}
+                </Text>
+              </TouchableOpacity>
+            </View>
 
-              <View style={styles.buttonContainer}>
-                <TouchableOpacity 
-                  style={[styles.button, styles.cancelButton]} 
-                  onPress={handleCancel}
-                >
-                  <Text style={styles.buttonText}>Cancelar</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={[
-                    styles.button, 
-                    styles.startButton,
-                    !canStart && styles.disabledButton
-                  ]} 
-                  onPress={handleStart}
-                  disabled={!canStart}
-                >
-                  <Text style={styles.buttonText}>Iniciar</Text>
-                </TouchableOpacity>
-              </View>
-              
-              {/* Status dos requisitos */}
-              <View style={styles.requirementsContainer}>
-                <Text style={styles.requirementsTitle}>Requisitos para iniciar:</Text>
+            <View style={styles.requirementsCard}>
+              <View style={styles.requirementRow}>
+                <View style={[
+                  styles.statusIndicator, 
+                  isReadyToStart ? styles.metIndicator : styles.notMetIndicator
+                ]} />
                 <Text style={[
-                  styles.requirementItem, 
+                  styles.requirementText,
                   isReadyToStart ? styles.requirementMet : styles.requirementNotMet
                 ]}>
-                  {isReadyToStart ? '✓' : '○'} Precisão do GPS adequada
-                </Text>
-                <Text style={[
-                  styles.requirementItem, 
-                  finishLine ? styles.requirementMet : styles.requirementNotMet
-                ]}>
-                  {finishLine ? '✓' : '○'} Linha de chegada definida
-                </Text>
-                <Text style={[
-                  styles.requirementItem, 
-                  sessionName.trim() !== '' ? styles.requirementMet : styles.requirementNotMet
-                ]}>
-                  {sessionName.trim() !== '' ? '✓' : '○'} Nome da sessão preenchido
+                  Precisão do GPS adequada
                 </Text>
               </View>
-            </>
-          )}
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+              
+              <View style={styles.requirementRow}>
+                <View style={[
+                  styles.statusIndicator, 
+                  finishLine ? styles.metIndicator : styles.notMetIndicator
+                ]} />
+                <Text style={[
+                  styles.requirementText,
+                  finishLine ? styles.requirementMet : styles.requirementNotMet
+                ]}>
+                  Linha de chegada definida
+                </Text>
+              </View>
+              
+              <View style={styles.requirementRow}>
+                <View style={[
+                  styles.statusIndicator, 
+                  sessionName.trim() !== '' ? styles.metIndicator : styles.notMetIndicator
+                ]} />
+                <Text style={[
+                  styles.requirementText,
+                  sessionName.trim() !== '' ? styles.requirementMet : styles.requirementNotMet
+                ]}>
+                  Nome da sessão preenchido
+                </Text>
+              </View>
+            </View>
+
+            <TouchableOpacity 
+              style={[
+                styles.button, 
+                styles.startButton,
+                !canStart && styles.disabledButton
+              ]} 
+              onPress={handleStart}
+              disabled={!canStart}
+            >
+              <Text style={styles.buttonText}>INICIAR SESSÃO</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.black,
+  },
+  background: {
+    position: 'absolute',
+    width: width,
+    height: height,
+  },
   container: {
     flex: 1,
+  },
+  contentContainer: {
+    flex: 1,
+    padding: 12,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  backButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#000',
-    padding: 20,
+    marginRight: 12,
+  },
+  backButtonText: {
+    color: COLORS.orange,
+    fontSize: 20,
+    fontWeight: 'bold',
   },
   title: {
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: 'bold',
-    color: '#F47820',
-    marginBottom: 30,
+    color: COLORS.white,
+    letterSpacing: 1,
+    flex: 1,
   },
-  inputContainer: {
-    width: '100%',
-    marginBottom: 25,
+  compactRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
   },
-  inputLabel: {
-    fontSize: 16,
-    color: '#fff',
+  sectionCard: {
+    backgroundColor: 'rgba(42, 42, 42, 0.7)',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  nameInputContainer: {
+    flex: 2,
+    marginRight: 8,
+  },
+  gpsContainer: {
+    flex: 1,
+  },
+  gpsContent: {
+    alignItems: 'center',
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: COLORS.orange,
     marginBottom: 8,
   },
   textInput: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
     borderRadius: 8,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    color: '#fff',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    color: COLORS.white,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    width: '100%',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    height: 44,
   },
-  accuracyContainer: {
-    alignItems: 'center',
-    marginBottom: 25,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    padding: 15,
-    borderRadius: 10,
-    width: '100%',
-  },
-  accuracyLabel: {
-    fontSize: 16,
-    color: '#fff',
-    marginBottom: 8,
-  },
-  accuracyValue: {
-    fontSize: 32,
+  valueText: {
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 12,
+    color: COLORS.white,
     fontFamily: 'monospace',
   },
-  indicatorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
   statusText: {
-    fontSize: 14,
-    marginLeft: 10,
+    fontSize: 13,
+    marginLeft: 4,
+    fontWeight: '600',
   },
-  finishLineContainer: {
+  finishLineHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 25,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    padding: 15,
-    borderRadius: 10,
-    width: '100%',
-  },
-  finishLineTitle: {
-    fontSize: 16,
-    color: '#fff',
     marginBottom: 8,
   },
-  finishLineText: {
-    fontSize: 16,
-    marginBottom: 15,
+  finishLineStatus: {
+    fontSize: 13,
     fontWeight: '600',
   },
   mapButton: {
-    backgroundColor: '#2196F3',
-    paddingHorizontal: 20,
+    backgroundColor: COLORS.orange,
+    paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: 20,
-    width: '80%',
+    borderRadius: 18,
     alignItems: 'center',
+    shadowColor: COLORS.orange,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 3,
   },
   mapButtonText: {
-    color: '#fff',
-    fontSize: 16,
+    color: COLORS.white,
+    fontSize: 15,
     fontWeight: '600',
   },
+  requirementsCard: {
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  requirementRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  statusIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 8,
+  },
+  metIndicator: {
+    backgroundColor: COLORS.green,
+  },
+  notMetIndicator: {
+    backgroundColor: COLORS.orange,
+  },
+  requirementText: {
+    fontSize: 14,
+  },
+  requirementMet: {
+    color: COLORS.green,
+  },
+  requirementNotMet: {
+    color: COLORS.orange,
+  },
+  button: {
+    paddingHorizontal: 25,
+    paddingVertical: 10,
+    borderRadius: 20,
+    alignItems: 'center',
+    alignSelf: 'center',
+    width: '90%',
+  },
+  startButton: {
+    backgroundColor: COLORS.orange,
+    shadowColor: COLORS.orange,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  disabledButton: {
+    backgroundColor: 'rgba(244, 120, 32, 0.5)',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  buttonText: {
+    color: COLORS.white,
+    fontSize: 14,
+    fontWeight: 'bold',
+    letterSpacing: 1,
+  },
   mapContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    flex: 1,
     justifyContent: 'flex-end',
     alignItems: 'center',
   },
@@ -376,73 +498,31 @@ const styles = StyleSheet.create({
   },
   mapInstructions: {
     backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    color: '#fff',
-    padding: 12,
-    borderRadius: 8,
+    color: COLORS.white,
+    padding: 10,
+    borderRadius: 10,
     marginBottom: 12,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     textAlign: 'center',
+    maxWidth: '90%',
   },
   closeMapButton: {
-    backgroundColor: '#F47820',
-    paddingHorizontal: 25,
-    paddingVertical: 12,
-    borderRadius: 25,
-    marginBottom: 20,
+    backgroundColor: COLORS.orange,
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginBottom: 16,
+    shadowColor: COLORS.orange,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
   closeMapButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    marginBottom: 20,
-  },
-  button: {
-    paddingHorizontal: 30,
-    paddingVertical: 15,
-    borderRadius: 25,
-    minWidth: 120,
-    alignItems: 'center',
-  },
-  cancelButton: {
-    backgroundColor: '#555',
-  },
-  startButton: {
-    backgroundColor: '#F47820',
-  },
-  disabledButton: {
-    backgroundColor: 'rgba(244, 120, 32, 0.5)',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  requirementsContainer: {
-    width: '100%',
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    padding: 15,
-    borderRadius: 10,
-  },
-  requirementsTitle: {
-    color: '#aaa',
+    color: COLORS.white,
     fontSize: 14,
-    marginBottom: 10,
-  },
-  requirementItem: {
-    fontSize: 14,
-    marginBottom: 6,
-  },
-  requirementMet: {
-    color: '#4CAF50',
-  },
-  requirementNotMet: {
-    color: '#F47820',
+    fontWeight: 'bold',
   },
 });
 
