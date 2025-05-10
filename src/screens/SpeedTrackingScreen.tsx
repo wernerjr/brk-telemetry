@@ -218,8 +218,8 @@ const SpeedTrackingScreen = ({ navigation, route }: any) => {
             const distance = calculateHaversineDistance(currentLocation, finishLine);
             setDistanceToFinish(distance);
             
-            // Verificar se chegou à linha de chegada (dentro de 20 metros)
-            if (distance < 20) {
+            // Verificar se chegou à linha de chegada (dentro de 4 metros)
+            if (distance < 4 ) {
               if (canCrossFinishLine) {
                 const now = Date.now();
                 
@@ -329,6 +329,17 @@ const SpeedTrackingScreen = ({ navigation, route }: any) => {
     
     // Finalizar a volta atual se houver
     let finalLaps = [...laps];
+    
+    // Para debug: Ver quantas voltas existem antes de marcar como desaceleração
+    console.log(`Total de voltas antes da marcação: ${finalLaps.length}`);
+    finalLaps.forEach((lap: LapData, index: number) => {
+      console.log(`Volta ${lap.lapNumber}: ${lap.isDecelerationLap ? 'Desaceleração' : 'Normal'}`);
+    });
+    
+    // Não vamos marcar a penúltima volta como desaceleração
+    // Apenas a última volta em andamento será marcada como desaceleração
+    
+    // Adicionar a volta atual em andamento como uma volta de desaceleração
     if (currentLapStartTime && currentLapTrack.length > 0 && firstCrossing) {
       const now = Date.now();
       const lapDuration = now - currentLapStartTime;
@@ -339,11 +350,17 @@ const SpeedTrackingScreen = ({ navigation, route }: any) => {
         endTime: now,
         duration: lapDuration,
         track: currentLapTrack,
-        isDecelerationLap: true // Marcar como volta de desaceleração
+        isDecelerationLap: true // Apenas esta volta é marcada como desaceleração
       };
       
       finalLaps.push(finalLap);
     }
+    
+    // Para debug: Ver quantas voltas têm agora
+    console.log(`Total de voltas após marcação: ${finalLaps.length}`);
+    finalLaps.forEach((lap: LapData, index: number) => {
+      console.log(`Volta ${lap.lapNumber}: ${lap.isDecelerationLap ? 'Desaceleração' : 'Normal'}`);
+    });
     
     // Salva a sessão localmente
     const sessionData = {
@@ -354,7 +371,7 @@ const SpeedTrackingScreen = ({ navigation, route }: any) => {
       finishReached: finishReached,
       laps: finalLaps,
       lapCount: finalLaps.length,
-      // Calcular a volta mais rápida excluindo a volta de desaceleração
+      // Calcular a volta mais rápida excluindo as voltas de desaceleração
       fastestLap: finalLaps.length > 0 
         ? finalLaps
             .filter((lap: LapData) => !lap.isDecelerationLap)

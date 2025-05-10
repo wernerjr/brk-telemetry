@@ -27,6 +27,22 @@ const SessionDetailScreen = ({ route, navigation }: any) => {
   });
   const [selectedLap, setSelectedLap] = useState<LapData | null>(null);
   
+  // Filtrar voltas para excluir voltas de desaceleração
+  const filteredLaps = useMemo(() => {
+    if (!session.laps) return [];
+    
+    // Debug log
+    console.log(`Total voltas na sessão: ${session.laps.length}`);
+    session.laps.forEach((lap: LapData, index: number) => {
+      console.log(`Volta ${lap.lapNumber}: ${lap.isDecelerationLap ? 'Desaceleração (excluída)' : 'Normal (incluída)'}`);
+    });
+    
+    const filtered = session.laps.filter((lap: LapData) => !lap.isDecelerationLap);
+    console.log(`Total voltas após filtro: ${filtered.length}`);
+    
+    return filtered;
+  }, [session.laps]);
+  
   // Creates segments of polylines with colors based on speed
   const getTrackSegments = (trackData: any[] = session.track) => {
     if (!trackData || trackData.length < 2) return [];
@@ -205,19 +221,19 @@ const SessionDetailScreen = ({ route, navigation }: any) => {
   
   // Encontrar a volta mais rápida
   const getFastestLap = () => {
-    if (!session.laps || session.laps.length === 0) return null;
+    if (!filteredLaps || filteredLaps.length === 0) return null;
     
-    let fastestLap = session.laps[0];
-    for (let i = 1; i < session.laps.length; i++) {
-      if (session.laps[i].duration < fastestLap.duration) {
-        fastestLap = session.laps[i];
+    let fastestLap = filteredLaps[0];
+    for (let i = 1; i < filteredLaps.length; i++) {
+      if (filteredLaps[i].duration < fastestLap.duration) {
+        fastestLap = filteredLaps[i];
       }
     }
     
     return fastestLap;
   };
   
-  const fastestLap = useMemo(() => getFastestLap(), [session]);
+  const fastestLap = useMemo(() => getFastestLap(), [filteredLaps]);
   
   useEffect(() => {
     const stats = calculateSessionStats();
@@ -382,13 +398,13 @@ const SessionDetailScreen = ({ route, navigation }: any) => {
       </View>
       
       {/* Laps Section */}
-      {session.laps && session.laps.length > 0 && (
+      {filteredLaps && filteredLaps.length > 0 && (
         <View style={styles.lapsContainer}>
           <Text style={styles.sectionTitle}>Voltas</Text>
           <Text style={styles.lapCount}>
             {selectedLap 
               ? `Visualizando: Volta ${selectedLap.lapNumber} (toque para desselecionar)`
-              : `Total: ${session.laps.length} voltas (toque para visualizar)`}
+              : `Total: ${filteredLaps.length} voltas (toque para visualizar)`}
           </Text>
           
           {fastestLap && (
@@ -401,7 +417,7 @@ const SessionDetailScreen = ({ route, navigation }: any) => {
           )}
           
           <FlatList
-            data={session.laps}
+            data={filteredLaps}
             renderItem={renderLapItem}
             keyExtractor={(item) => `lap-${item.lapNumber}`}
             scrollEnabled={false}
