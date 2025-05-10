@@ -17,6 +17,12 @@ interface LapData {
   isDecelerationLap?: boolean;
 }
 
+interface LapStats {
+  avgSpeed: number;
+  maxSpeed: number;
+  distance: number;
+}
+
 const SessionDetailScreen = ({ route, navigation }: any) => {
   const { session } = route.params;
   const [sessionStats, setSessionStats] = useState({
@@ -26,6 +32,11 @@ const SessionDetailScreen = ({ route, navigation }: any) => {
     distance: 0,
   });
   const [selectedLap, setSelectedLap] = useState<LapData | null>(null);
+  const [selectedLapStats, setSelectedLapStats] = useState<LapStats>({
+    avgSpeed: 0,
+    maxSpeed: 0,
+    distance: 0,
+  });
   
   // Filtrar voltas para excluir voltas de desaceleração
   const filteredLaps = useMemo(() => {
@@ -235,6 +246,54 @@ const SessionDetailScreen = ({ route, navigation }: any) => {
   
   const fastestLap = useMemo(() => getFastestLap(), [filteredLaps]);
   
+  // Calculate statistics for a specific lap
+  const calculateLapStats = (lap: LapData): LapStats => {
+    if (!lap.track || lap.track.length < 2) {
+      return {
+        avgSpeed: 0,
+        maxSpeed: 0,
+        distance: 0,
+      };
+    }
+    
+    let totalDistance = 0;
+    let maxSpeed = 0;
+    const speeds: number[] = [];
+    
+    // Calculate distances and speeds
+    for (let i = 1; i < lap.track.length; i++) {
+      const prev = lap.track[i - 1];
+      const curr = lap.track[i];
+      
+      const distance = calculateHaversineDistance(prev, curr);
+      totalDistance += distance;
+      
+      const timeDiff = (curr.timestamp - prev.timestamp) / 1000; // seconds
+      if (timeDiff > 0) {
+        const speed = (distance / timeDiff) * 3.6; // km/h
+        speeds.push(speed);
+        if (speed > maxSpeed) maxSpeed = speed;
+      }
+    }
+    
+    // Calculate average speed
+    const avgSpeed = speeds.length > 0 ? speeds.reduce((sum, speed) => sum + speed, 0) / speeds.length : 0;
+    
+    return {
+      avgSpeed: avgSpeed,
+      maxSpeed: maxSpeed,
+      distance: totalDistance / 1000, // convert to km
+    };
+  };
+  
+  // Update selected lap statistics when a lap is selected
+  useEffect(() => {
+    if (selectedLap && selectedLap.track && selectedLap.track.length > 0) {
+      const stats = calculateLapStats(selectedLap);
+      setSelectedLapStats(stats);
+    }
+  }, [selectedLap]);
+  
   useEffect(() => {
     const stats = calculateSessionStats();
     setSessionStats(stats);
@@ -280,7 +339,6 @@ const SessionDetailScreen = ({ route, navigation }: any) => {
               {formatLapTime(item.duration)}
             </Text>
             {isFastest && <Text style={styles.fastestLabel}>MAIS RÁPIDA</Text>}
-            {isSelected && <Text style={styles.selectedLabel}>SELECIONADA</Text>}
           </View>
         </View>
       </TouchableOpacity>
@@ -399,6 +457,31 @@ const SessionDetailScreen = ({ route, navigation }: any) => {
           </View>
         )}
       </View>
+      
+      {/* Selected lap stats - MOVIDO PARA APÓS O MAPA */}
+      {selectedLap && (
+        <View style={styles.selectedLapStatsContainer}>
+          <Text style={styles.selectedLapTitle}>Estatísticas da Volta {selectedLap.lapNumber}</Text>
+          <View style={styles.selectedLapStats}>
+            <View style={styles.lapStatItem}>
+              <Text style={styles.lapStatValue}>{formatLapTime(selectedLap.duration)}</Text>
+              <Text style={styles.lapStatLabel}>Tempo</Text>
+            </View>
+            <View style={styles.lapStatItem}>
+              <Text style={styles.lapStatValue}>{selectedLapStats.avgSpeed.toFixed(1)}</Text>
+              <Text style={styles.lapStatLabel}>Vel. Média (km/h)</Text>
+            </View>
+            <View style={styles.lapStatItem}>
+              <Text style={styles.lapStatValue}>{selectedLapStats.maxSpeed.toFixed(1)}</Text>
+              <Text style={styles.lapStatLabel}>Vel. Máxima (km/h)</Text>
+            </View>
+            <View style={styles.lapStatItem}>
+              <Text style={styles.lapStatValue}>{selectedLapStats.distance.toFixed(2)}</Text>
+              <Text style={styles.lapStatLabel}>Distância (km)</Text>
+            </View>
+          </View>
+        </View>
+      )}
       
       {/* Laps Section */}
       {filteredLaps && filteredLaps.length > 0 && (
@@ -546,9 +629,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(76, 175, 80, 0.2)',
   },
   selectedLapItem: {
-    backgroundColor: 'rgba(33, 150, 243, 0.3)',
+    backgroundColor: 'rgba(244, 120, 32, 0.3)',
     borderWidth: 1,
-    borderColor: '#2196F3',
+    borderColor: '#F47820',
   },
   lapNumberContainer: {
     width: 50,
@@ -576,7 +659,7 @@ const styles = StyleSheet.create({
     color: '#4CAF50',
   },
   selectedLapTime: {
-    color: '#2196F3',
+    color: '#F47820',
   },
   fastestLabel: {
     fontSize: 12,
@@ -585,9 +668,44 @@ const styles = StyleSheet.create({
   },
   selectedLabel: {
     fontSize: 12,
-    color: '#2196F3',
+    color: '#F47820',
     marginTop: 2,
   },
+  selectedLapStatsContainer: {
+    marginHorizontal: 15,
+    marginBottom: 20,
+    padding: 15,
+    backgroundColor: 'rgba(244, 120, 32, 0.15)',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(244, 120, 32, 0.3)',
+  },
+  selectedLapTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#F47820',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  selectedLapStats: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  lapStatItem: {
+    width: '48%',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  lapStatValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  lapStatLabel: {
+    fontSize: 12,
+    color: '#aaa',
+  }
 });
 
 export default SessionDetailScreen; 

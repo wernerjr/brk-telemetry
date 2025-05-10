@@ -148,7 +148,9 @@ const SessionsScreen = ({ navigation }: any) => {
           </View>
           
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>{item.laps?.length || 0}</Text>
+            <Text style={styles.statValue}>
+              {item.laps ? item.laps.filter(lap => !lap.isDecelerationLap).length : 0}
+            </Text>
             <Text style={styles.statLabel}>Voltas</Text>
           </View>
           
