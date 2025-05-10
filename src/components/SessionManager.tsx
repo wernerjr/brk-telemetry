@@ -39,6 +39,13 @@ interface SessionData {
   track?: Location[];
 }
 
+const COLORS = {
+  orange: '#F47820',
+  black: '#231F20', 
+  white: '#FFFFFF',
+  darkGray: '#2a2a2a',
+};
+
 const SessionManager: React.FC<SessionManagerProps> = ({ onSessionsUpdated }) => {
   const requestStoragePermission = async () => {
     if (Platform.OS === 'android') {
@@ -255,11 +262,20 @@ Name: ${error.name || 'Sem nome de erro'}
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.button} onPress={exportSessions}>
-        <Text style={styles.buttonText}>Exportar Sessões</Text>
+      <TouchableOpacity 
+        style={[styles.button, styles.exportButton]} 
+        onPress={exportSessions}
+        activeOpacity={0.8}
+      >
+        <Text style={styles.buttonText}>Exportar</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.button} onPress={importSessions}>
-        <Text style={styles.buttonText}>Importar Sessões</Text>
+      
+      <TouchableOpacity 
+        style={[styles.button, styles.importButton]} 
+        onPress={importSessions}
+        activeOpacity={0.8}
+      >
+        <Text style={styles.buttonText}>Importar</Text>
       </TouchableOpacity>
     </View>
   );
@@ -268,25 +284,36 @@ Name: ${error.name || 'Sem nome de erro'}
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    padding: 16,
-    backgroundColor: '#2a2a2a',
-    borderRadius: 8,
-    marginHorizontal: 16,
-    marginBottom: 16,
+    justifyContent: 'space-between',
+    marginBottom: 20,
+    marginTop: 6,
   },
   button: {
-    backgroundColor: '#F47820',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    minWidth: 150,
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
     alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 5,
+    elevation: 5,
+  },
+  exportButton: {
+    backgroundColor: COLORS.orange,
+  },
+  importButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderWidth: 1,
+    borderColor: COLORS.orange,
   },
   buttonText: {
-    color: '#fff',
+    color: COLORS.white,
     fontSize: 14,
     fontWeight: 'bold',
+    letterSpacing: 0.5,
   },
 });
 

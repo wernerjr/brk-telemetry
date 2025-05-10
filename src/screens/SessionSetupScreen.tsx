@@ -122,25 +122,30 @@ const SessionSetupScreen = ({ navigation }: any) => {
                   longitudeDelta: 0.005,
                 }}
                 onPress={handleMapPress}
-                mapType="standard"
+                mapType="satellite"
+                showsCompass={true}
+                showsUserLocation={true}
+                zoomControlEnabled={true}
               >
                 {currentLocation && (
                   <Marker
                     coordinate={currentLocation}
-                    title="Sua posição"
+                    title="Sua posição atual"
+                    description="Posição atual com base no GPS"
                     pinColor="blue"
                   />
                 )}
                 {finishLine && (
                   <Marker
                     coordinate={finishLine}
-                    title="Linha de chegada"
+                    title="Linha de chegada/chegada"
+                    description="Ponto para contar voltas"
                     pinColor="red"
                   />
                 )}
               </MapView>
               <Text style={styles.mapInstructions}>
-                Toque no mapa para definir a linha de chegada
+                Toque no mapa para definir a linha de chegada/chegada (ponto vermelho)
               </Text>
               <TouchableOpacity 
                 style={styles.closeMapButton} 
@@ -370,12 +375,14 @@ const styles = StyleSheet.create({
     bottom: 0,
   },
   mapInstructions: {
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
     color: '#fff',
-    padding: 10,
+    padding: 12,
     borderRadius: 8,
-    marginBottom: 10,
+    marginBottom: 12,
     fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   closeMapButton: {
     backgroundColor: '#F47820',

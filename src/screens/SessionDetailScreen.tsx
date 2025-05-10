@@ -321,7 +321,10 @@ const SessionDetailScreen = ({ route, navigation }: any) => {
           <MapView 
             style={styles.map}
             initialRegion={initialRegion}
-            mapType="standard"
+            mapType="satellite"
+            showsCompass={true}
+            showsUserLocation={true}
+            zoomControlEnabled={true}
           >
             {trackSegments.map((segment, index) => (
               <Polyline
