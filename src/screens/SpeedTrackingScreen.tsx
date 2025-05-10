@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import Geolocation from '@react-native-community/geolocation';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -233,12 +233,6 @@ const SpeedTrackingScreen = ({ navigation, route }: any) => {
                   
                   // Adicionar os pontos coletados antes da linha como parte da volta 1
                   setCurrentLapTrack(preStartTrack.current);
-                  
-                  Alert.alert(
-                    "Linha de Chegada!",
-                    "Primeira volta iniciada!",
-                    [{ text: "OK" }]
-                  );
                 } else if (currentLapStartTime) {
                   // Completou uma volta
                   const lapDuration = now - currentLapStartTime;
@@ -261,13 +255,6 @@ const SpeedTrackingScreen = ({ navigation, route }: any) => {
                   setCurrentLapStartTime(now);
                   setCurrentLapTime(0);
                   setCurrentLapTrack([]); // Limpar as coordenadas para a nova volta
-                  
-                  // Notificação de volta completada
-                  Alert.alert(
-                    "Volta Completada!",
-                    `Volta #${lapCount} concluída em ${formatLapTime(lapDuration)}`,
-                    [{ text: "OK" }]
-                  );
                   
                   // Salvar dados parciais da sessão
                   saveSessionData({

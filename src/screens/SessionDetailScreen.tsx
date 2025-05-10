@@ -14,6 +14,7 @@ interface LapData {
   endTime: number;
   duration: number;
   track?: any[];
+  isDecelerationLap?: boolean;
 }
 
 const SessionDetailScreen = ({ route, navigation }: any) => {
@@ -24,18 +25,19 @@ const SessionDetailScreen = ({ route, navigation }: any) => {
     duration: 0,
     distance: 0,
   });
+  const [selectedLap, setSelectedLap] = useState<LapData | null>(null);
   
   // Creates segments of polylines with colors based on speed
-  const getTrackSegments = () => {
-    if (!session.track || session.track.length < 2) return [];
+  const getTrackSegments = (trackData: any[] = session.track) => {
+    if (!trackData || trackData.length < 2) return [];
     
     const segments: { points: any[], color: string }[] = [];
     const speeds: number[] = [];
     
     // Calculate speeds for all track points
-    for (let i = 1; i < session.track.length; i++) {
-      const prev = session.track[i - 1];
-      const curr = session.track[i];
+    for (let i = 1; i < trackData.length; i++) {
+      const prev = trackData[i - 1];
+      const curr = trackData[i];
       
       const distance = calculateHaversineDistance(prev, curr);
       const timeDiff = (curr.timestamp - prev.timestamp) / 1000; // seconds
@@ -48,14 +50,14 @@ const SessionDetailScreen = ({ route, navigation }: any) => {
     const maxSpeed = Math.max(...speeds);
     
     // Create segments with colors
-    for (let i = 1; i < session.track.length; i++) {
+    for (let i = 1; i < trackData.length; i++) {
       const speed = speeds[i - 1];
       const color = getSpeedColor(speed, maxSpeed);
       
       segments.push({
         points: [
-          { latitude: session.track[i - 1].latitude, longitude: session.track[i - 1].longitude },
-          { latitude: session.track[i].latitude, longitude: session.track[i].longitude }
+          { latitude: trackData[i - 1].latitude, longitude: trackData[i - 1].longitude },
+          { latitude: trackData[i].latitude, longitude: trackData[i].longitude }
         ],
         color: color
       });
@@ -148,8 +150,8 @@ const SessionDetailScreen = ({ route, navigation }: any) => {
   };
   
   // Calculate the initial region for the map to focus on the track
-  const getInitialRegion = () => {
-    if (!session.track || session.track.length === 0) {
+  const getInitialRegion = (trackData: any[] = session.track) => {
+    if (!trackData || trackData.length === 0) {
       // Default region if no track
       return {
         latitude: 0,
@@ -160,12 +162,12 @@ const SessionDetailScreen = ({ route, navigation }: any) => {
     }
     
     // Find min and max lat/lng to determine bounds
-    let minLat = session.track[0].latitude;
-    let maxLat = session.track[0].latitude;
-    let minLng = session.track[0].longitude;
-    let maxLng = session.track[0].longitude;
+    let minLat = trackData[0].latitude;
+    let maxLat = trackData[0].latitude;
+    let minLng = trackData[0].longitude;
+    let maxLng = trackData[0].longitude;
     
-    session.track.forEach((point: any) => {
+    trackData.forEach((point: any) => {
       minLat = Math.min(minLat, point.latitude);
       maxLat = Math.max(maxLat, point.latitude);
       minLng = Math.min(minLng, point.longitude);
@@ -187,8 +189,19 @@ const SessionDetailScreen = ({ route, navigation }: any) => {
     };
   };
   
-  const trackSegments = useMemo(() => getTrackSegments(), [session]);
-  const initialRegion = useMemo(() => getInitialRegion(), [session]);
+  const trackSegments = useMemo(() => {
+    if (selectedLap && selectedLap.track && selectedLap.track.length > 0) {
+      return getTrackSegments(selectedLap.track);
+    }
+    return getTrackSegments();
+  }, [session, selectedLap]);
+  
+  const initialRegion = useMemo(() => {
+    if (selectedLap && selectedLap.track && selectedLap.track.length > 0) {
+      return getInitialRegion(selectedLap.track);
+    }
+    return getInitialRegion();
+  }, [session, selectedLap]);
   
   // Encontrar a volta mais rápida
   const getFastestLap = () => {
@@ -221,19 +234,40 @@ const SessionDetailScreen = ({ route, navigation }: any) => {
   
   const renderLapItem = ({ item, index }: { item: LapData, index: number }) => {
     const isFastest = fastestLap && item.lapNumber === fastestLap.lapNumber;
+    const isSelected = selectedLap && item.lapNumber === selectedLap.lapNumber;
     
     return (
-      <View style={[styles.lapItem, isFastest && styles.fastestLapItem]}>
-        <View style={styles.lapNumberContainer}>
-          <Text style={styles.lapNumber}>{item.lapNumber}</Text>
+      <TouchableOpacity 
+        onPress={() => {
+          if (isSelected) {
+            // Deselect if already selected
+            setSelectedLap(null);
+          } else {
+            setSelectedLap(item);
+          }
+        }}
+      >
+        <View style={[
+          styles.lapItem, 
+          isFastest && styles.fastestLapItem,
+          isSelected && styles.selectedLapItem
+        ]}>
+          <View style={styles.lapNumberContainer}>
+            <Text style={styles.lapNumber}>{item.lapNumber}</Text>
+          </View>
+          <View style={styles.lapTimeContainer}>
+            <Text style={[
+              styles.lapTime, 
+              isFastest && styles.fastestLapTime,
+              isSelected && styles.selectedLapTime
+            ]}>
+              {formatLapTime(item.duration)}
+            </Text>
+            {isFastest && <Text style={styles.fastestLabel}>MAIS RÁPIDA</Text>}
+            {isSelected && <Text style={styles.selectedLabel}>SELECIONADA</Text>}
+          </View>
         </View>
-        <View style={styles.lapTimeContainer}>
-          <Text style={[styles.lapTime, isFastest && styles.fastestLapTime]}>
-            {formatLapTime(item.duration)}
-          </Text>
-          {isFastest && <Text style={styles.fastestLabel}>MAIS RÁPIDA</Text>}
-        </View>
-      </View>
+      </TouchableOpacity>
     );
   };
   
@@ -266,7 +300,8 @@ const SessionDetailScreen = ({ route, navigation }: any) => {
       </View>
       
       <View style={styles.mapContainer}>
-        {session.track && session.track.length > 0 ? (
+        {((selectedLap && selectedLap.track && selectedLap.track.length > 0) || 
+           (session.track && session.track.length > 0)) ? (
           <MapView 
             style={styles.map}
             initialRegion={initialRegion}
@@ -282,27 +317,49 @@ const SessionDetailScreen = ({ route, navigation }: any) => {
             ))}
             
             {/* Start marker */}
-            {session.track.length > 0 && (
+            {(selectedLap && selectedLap.track && selectedLap.track.length > 0) ? (
               <Marker 
                 coordinate={{
-                  latitude: session.track[0].latitude,
-                  longitude: session.track[0].longitude
+                  latitude: selectedLap.track[0].latitude,
+                  longitude: selectedLap.track[0].longitude
                 }}
-                title="Início"
+                title="Início da Volta"
                 pinColor="green"
               />
+            ) : (
+              session.track && session.track.length > 0 && (
+                <Marker 
+                  coordinate={{
+                    latitude: session.track[0].latitude,
+                    longitude: session.track[0].longitude
+                  }}
+                  title="Início"
+                  pinColor="green"
+                />
+              )
             )}
             
             {/* End marker */}
-            {session.track.length > 1 && (
+            {(selectedLap && selectedLap.track && selectedLap.track.length > 0) ? (
               <Marker 
                 coordinate={{
-                  latitude: session.track[session.track.length - 1].latitude,
-                  longitude: session.track[session.track.length - 1].longitude
+                  latitude: selectedLap.track[selectedLap.track.length - 1].latitude,
+                  longitude: selectedLap.track[selectedLap.track.length - 1].longitude
                 }}
-                title="Fim"
+                title="Fim da Volta"
                 pinColor="red"
               />
+            ) : (
+              session.track && session.track.length > 1 && (
+                <Marker 
+                  coordinate={{
+                    latitude: session.track[session.track.length - 1].latitude,
+                    longitude: session.track[session.track.length - 1].longitude
+                  }}
+                  title="Fim"
+                  pinColor="red"
+                />
+              )
             )}
             
             {/* Finish line marker */}
@@ -328,7 +385,11 @@ const SessionDetailScreen = ({ route, navigation }: any) => {
       {session.laps && session.laps.length > 0 && (
         <View style={styles.lapsContainer}>
           <Text style={styles.sectionTitle}>Voltas</Text>
-          <Text style={styles.lapCount}>Total: {session.laps.length} voltas</Text>
+          <Text style={styles.lapCount}>
+            {selectedLap 
+              ? `Visualizando: Volta ${selectedLap.lapNumber} (toque para desselecionar)`
+              : `Total: ${session.laps.length} voltas (toque para visualizar)`}
+          </Text>
           
           {fastestLap && (
             <View style={styles.fastestLapContainer}>
@@ -465,6 +526,11 @@ const styles = StyleSheet.create({
   fastestLapItem: {
     backgroundColor: 'rgba(76, 175, 80, 0.2)',
   },
+  selectedLapItem: {
+    backgroundColor: 'rgba(33, 150, 243, 0.3)',
+    borderWidth: 1,
+    borderColor: '#2196F3',
+  },
   lapNumberContainer: {
     width: 50,
     height: 50,
@@ -490,9 +556,17 @@ const styles = StyleSheet.create({
   fastestLapTime: {
     color: '#4CAF50',
   },
+  selectedLapTime: {
+    color: '#2196F3',
+  },
   fastestLabel: {
     fontSize: 12,
     color: '#4CAF50',
+    marginTop: 2,
+  },
+  selectedLabel: {
+    fontSize: 12,
+    color: '#2196F3',
     marginTop: 2,
   },
 });
